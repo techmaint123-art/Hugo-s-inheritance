@@ -91,21 +91,21 @@ def init_db():
 
     if db.query(LeaveType).count() == 0:
         leave_types = [
-            LeaveType(type_code="personal", type_name="事假", unit="hour", is_paid=False,
+            LeaveType(type_code="personal", type_name="Personal Leave", unit="hour", is_paid=False,
                       max_days_per_year=None, need_proof=False,
-                      description="個人事務請假，不帶薪，以小時計算"),
-            LeaveType(type_code="sick", type_name="病假", unit="hour", is_paid=True,
+                      description="Personal affairs leave, unpaid, calculated in hours"),
+            LeaveType(type_code="sick", type_name="Sick Leave", unit="hour", is_paid=True,
                       max_days_per_year=30.0, need_proof=True,
-                      description="因病請假，需診斷證明，每年上限30天"),
-            LeaveType(type_code="annual", type_name="年假", unit="day", is_paid=True,
+                      description="Sick leave, medical certificate required, max 30 days per year"),
+            LeaveType(type_code="annual", type_name="Annual Leave", unit="day", is_paid=True,
                       max_days_per_year=None, need_proof=False,
-                      description="年度特休，依年資計算，帶薪"),
-            LeaveType(type_code="official", type_name="公假", unit="day", is_paid=True,
+                      description="Annual leave based on seniority, paid"),
+            LeaveType(type_code="official", type_name="Official Leave", unit="day", is_paid=True,
                       max_days_per_year=None, need_proof=True,
-                      description="因公務或法定事項請假，需證明文件"),
-            LeaveType(type_code="bereavement", type_name="喪假", unit="day", is_paid=True,
+                      description="Official or statutory leave, supporting documents required"),
+            LeaveType(type_code="bereavement", type_name="Bereavement Leave", unit="day", is_paid=True,
                       max_days_per_year=15.0, need_proof=True,
-                      description="親屬過世請假，依親屬關係給予3~15天"),
+                      description="Bereavement leave for deceased relatives, 3-15 days depending on relationship"),
         ]
         db.add_all(leave_types)
         db.commit()

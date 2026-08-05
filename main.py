@@ -11,9 +11,9 @@ import threading
 import time
 
 from database import init_db, get_db, LeaveType, Employee, LeaveBalance, LeaveRequest
-from schemas import LeaveRequestCreate, ApproveRequest, EmployeeCreate
+from schemas import LeaveRequestCreate, ApproveRequest, EmployeeCreate, EmployeeUpdate
 
-app = FastAPI(title="公司請假系統", version="2.1.0")
+app = FastAPI(title="Ansett Leave Apply System", version="2.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,10 +59,9 @@ def get_employees(db: Session = Depends(get_db)):
 
 @app.post("/api/employees")
 def create_employee(data: EmployeeCreate, db: Session = Depends(get_db)):
-    # 檢查工號是否重複
     exists = db.query(Employee).filter(Employee.emp_no == data.emp_no).first()
     if exists:
-        raise HTTPException(status_code=400, detail=f"工號 {data.emp_no} 已存在")
+        raise HTTPException(status_code=400, detail=f"Employee No. {data.emp_no} already exists")
 
     emp = Employee(
         emp_no=data.emp_no,
@@ -75,7 +74,6 @@ def create_employee(data: EmployeeCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(emp)
 
-    # 自動建立各假別餘額
     types = db.query(LeaveType).all()
     for t in types:
         quota = 999.0
@@ -85,24 +83,67 @@ def create_employee(data: EmployeeCreate, db: Session = Depends(get_db)):
             quota = 30.0 * 8
         elif t.type_code == "bereavement":
             quota = 15.0
-
         balance = LeaveBalance(
-            emp_id=emp.emp_id,
-            type_id=t.type_id,
-            year=2026,
-            total_quota=quota,
-            used=0.0,
-            remaining=quota
+            emp_id=emp.emp_id, type_id=t.type_id, year=2026,
+            total_quota=quota, used=0.0, remaining=quota
         )
         db.add(balance)
     db.commit()
 
-    return {
-        "message": f"員工 {data.name} 新增成功",
-        "emp_id": emp.emp_id,
-        "emp_no": emp.emp_no,
-        "name": emp.name
-    }
+    return {"message": f"Employee {data.name} added successfully", "emp_id": emp.emp_id, "emp_no": emp.emp_no, "name": emp.name}
+
+
+@app.put("/api/employees/{emp_id}")
+def update_employee(emp_id: int, data: EmployeeUpdate, db: Session = Depends(get_db)):
+    emp = db.query(Employee).filter(Employee.emp_id == emp_id).first()
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    if data.name is not None:
+        emp.name = data.name
+    if data.department is not None:
+        emp.department = data.department
+    if data.hire_date is not None:
+        emp.hire_date = data.hire_date
+    if data.annual_leave_days is not None:
+        emp.annual_leave_days = data.annual_leave_days
+        # 同步更新年假餘額總額
+        annual_type = db.query(LeaveType).filter(LeaveType.type_code == "annual").first()
+        if annual_type:
+            bal = db.query(LeaveBalance).filter(
+                LeaveBalance.emp_id == emp_id,
+                LeaveBalance.type_id == annual_type.type_id,
+                LeaveBalance.year == 2026
+            ).first()
+            if bal:
+                bal.total_quota = data.annual_leave_days
+                bal.remaining = max(0, data.annual_leave_days - bal.used)
+
+    db.commit()
+    return {"message": f"Employee {emp.name} updated successfully"}
+
+
+@app.delete("/api/employees/{emp_id}")
+def delete_employee(emp_id: int, db: Session = Depends(get_db)):
+    emp = db.query(Employee).filter(Employee.emp_id == emp_id).first()
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # 檢查是否有待審或已核准的請假
+    active_req = db.query(LeaveRequest).filter(
+        LeaveRequest.emp_id == emp_id,
+        LeaveRequest.status.in_(["pending", "approved"])
+    ).first()
+    if active_req:
+        raise HTTPException(status_code=400, detail="This employee has active leave records and cannot be deleted.")
+
+    # 刪除餘額
+    db.query(LeaveBalance).filter(LeaveBalance.emp_id == emp_id).delete()
+    # 刪除已取消/駁回的申請
+    db.query(LeaveRequest).filter(LeaveRequest.emp_id == emp_id).delete()
+    db.delete(emp)
+    db.commit()
+    return {"message": f"Employee {emp.name} deleted"}
 
 
 @app.get("/api/balances/{emp_id}")
@@ -116,15 +157,9 @@ def get_balances(emp_id: int, db: Session = Depends(get_db)):
     result = []
     for bal, ltype in balances:
         result.append({
-            "balance_id": bal.balance_id,
-            "emp_id": bal.emp_id,
-            "type_id": bal.type_id,
-            "type_name": ltype.type_name,
-            "unit": ltype.unit,
-            "year": bal.year,
-            "total_quota": bal.total_quota,
-            "used": bal.used,
-            "remaining": bal.remaining
+            "balance_id": bal.balance_id, "emp_id": bal.emp_id, "type_id": bal.type_id,
+            "type_name": ltype.type_name, "unit": ltype.unit, "year": bal.year,
+            "total_quota": bal.total_quota, "used": bal.used, "remaining": bal.remaining
         })
     return result
 
@@ -140,22 +175,15 @@ def get_requests(emp_id: int = None, status: str = None, db: Session = Depends(g
         query = query.filter(LeaveRequest.emp_id == emp_id)
     if status:
         query = query.filter(LeaveRequest.status == status)
-
     rows = query.order_by(LeaveRequest.created_at.desc()).all()
     result = []
     for req, emp, ltype in rows:
         result.append({
-            "request_id": req.request_id,
-            "emp_id": req.emp_id,
-            "emp_name": emp.name,
-            "type_id": req.type_id,
-            "type_name": ltype.type_name,
-            "start_datetime": req.start_datetime,
-            "end_datetime": req.end_datetime,
-            "total_hours": req.total_hours,
-            "total_days": req.total_days,
-            "reason": req.reason,
-            "status": req.status,
+            "request_id": req.request_id, "emp_id": req.emp_id, "emp_name": emp.name,
+            "type_id": req.type_id, "type_name": ltype.type_name,
+            "start_datetime": req.start_datetime, "end_datetime": req.end_datetime,
+            "total_hours": req.total_hours, "total_days": req.total_days,
+            "reason": req.reason, "status": req.status,
             "created_at": req.created_at.isoformat() if req.created_at else None,
             "approver_comment": req.approver_comment
         })
@@ -166,27 +194,18 @@ def get_requests(emp_id: int = None, status: str = None, db: Session = Depends(g
 def create_request(data: LeaveRequestCreate, db: Session = Depends(get_db)):
     emp = db.query(Employee).filter(Employee.emp_id == data.emp_id).first()
     if not emp:
-        raise HTTPException(status_code=404, detail="員工不存在")
-
+        raise HTTPException(status_code=404, detail="Employee not found")
     ltype = db.query(LeaveType).filter(LeaveType.type_id == data.type_id).first()
     if not ltype:
-        raise HTTPException(status_code=404, detail="假別不存在")
-
-    balance = (
-        db.query(LeaveBalance)
-        .filter(LeaveBalance.emp_id == data.emp_id,
-                LeaveBalance.type_id == data.type_id,
-                LeaveBalance.year == 2026)
-        .first()
-    )
+        raise HTTPException(status_code=404, detail="Leave type not found")
+    balance = db.query(LeaveBalance).filter(
+        LeaveBalance.emp_id == data.emp_id, LeaveBalance.type_id == data.type_id, LeaveBalance.year == 2026
+    ).first()
     if not balance:
-        raise HTTPException(status_code=400, detail="找不到對應餘額資料")
-
+        raise HTTPException(status_code=400, detail="Balance record not found")
     need = data.total_hours if ltype.unit == "hour" else data.total_days
     if balance.remaining < need and ltype.type_code not in ("personal", "official"):
-        raise HTTPException(status_code=400,
-                            detail=f"餘額不足！目前剩餘 {balance.remaining}，申請需要 {need}")
-
+        raise HTTPException(status_code=400, detail=f"Insufficient balance！目前剩餘 {balance.remaining}，申請需要 {need}")
     new_req = LeaveRequest(
         emp_id=data.emp_id, type_id=data.type_id,
         start_datetime=data.start_datetime, end_datetime=data.end_datetime,
@@ -196,27 +215,21 @@ def create_request(data: LeaveRequestCreate, db: Session = Depends(get_db)):
     db.add(new_req)
     db.commit()
     db.refresh(new_req)
-
-    return {"message": "請假申請已送出，等待審核", "request_id": new_req.request_id, "status": "pending"}
+    return {"message": "Leave request submitted, pending approval", "request_id": new_req.request_id, "status": "pending"}
 
 
 @app.post("/api/approve")
 def approve_request(data: ApproveRequest, db: Session = Depends(get_db)):
     req = db.query(LeaveRequest).filter(LeaveRequest.request_id == data.request_id).first()
     if not req:
-        raise HTTPException(status_code=404, detail="申請單不存在")
+        raise HTTPException(status_code=404, detail="Request not found")
     if req.status != "pending":
-        raise HTTPException(status_code=400, detail="此申請已處理過")
-
+        raise HTTPException(status_code=400, detail="This request has already been processed")
     if data.action == "approve":
         req.status = "approved"
-        balance = (
-            db.query(LeaveBalance)
-            .filter(LeaveBalance.emp_id == req.emp_id,
-                    LeaveBalance.type_id == req.type_id,
-                    LeaveBalance.year == 2026)
-            .first()
-        )
+        balance = db.query(LeaveBalance).filter(
+            LeaveBalance.emp_id == req.emp_id, LeaveBalance.type_id == req.type_id, LeaveBalance.year == 2026
+        ).first()
         if balance:
             ltype = db.query(LeaveType).filter(LeaveType.type_id == req.type_id).first()
             deduct = req.total_hours if ltype.unit == "hour" else req.total_days
@@ -226,28 +239,26 @@ def approve_request(data: ApproveRequest, db: Session = Depends(get_db)):
         req.status = "rejected"
     else:
         raise HTTPException(status_code=400, detail="action 必須是 approve 或 reject")
-
     req.approver_comment = data.comment
     db.commit()
-    return {"message": f"申請已{'核准' if data.action == 'approve' else '駁回'}",
-            "request_id": req.request_id, "status": req.status}
+    return {"message": f"申請已{'核准' if data.action == 'approve' else '駁回'}", "request_id": req.request_id, "status": req.status}
 
 
 @app.delete("/api/requests/{request_id}")
 def cancel_request(request_id: int, db: Session = Depends(get_db)):
     req = db.query(LeaveRequest).filter(LeaveRequest.request_id == request_id).first()
     if not req:
-        raise HTTPException(status_code=404, detail="申請單不存在")
+        raise HTTPException(status_code=404, detail="Request not found")
     if req.status != "pending":
-        raise HTTPException(status_code=400, detail="只能取消待審核的申請")
+        raise HTTPException(status_code=400, detail="Only pending requests can be cancelled")
     req.status = "cancelled"
     db.commit()
-    return {"message": "申請已取消"}
+    return {"message": "Request cancelled"}
 
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "version": "2.1.0"}
+    return {"status": "ok", "version": "2.2.0"}
 
 
 def open_browser():
