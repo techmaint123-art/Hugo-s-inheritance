@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, text, inspect
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
@@ -40,7 +40,7 @@ class Employee(Base):
     emp_id = Column(Integer, primary_key=True, index=True)
     emp_no = Column(String(20), unique=True, nullable=False)
     name = Column(String(50), nullable=False)
-    gender = Column(String(10), default="male")  # male / female
+    gender = Column(String(10), default="male")
     department = Column(String(50), default="General")
     hire_date = Column(String(20), default="2023-01-01")
     annual_leave_days = Column(Float, default=14.0)
@@ -84,11 +84,40 @@ class LeaveRequest(Base):
     leave_type = relationship("LeaveType", back_populates="requests")
 
 
+def _migrate_schema():
+    """Add missing columns / tables safely for existing databases."""
+    insp = inspect(engine)
+    tables = insp.get_table_names()
+
+    with engine.connect() as conn:
+        # Add gender column to employees if missing
+        if "employees" in tables:
+            cols = [c["name"] for c in insp.get_columns("employees")]
+            if "gender" not in cols:
+                try:
+                    if DATABASE_URL.startswith("sqlite"):
+                        conn.execute(text("ALTER TABLE employees ADD COLUMN gender VARCHAR(10) DEFAULT 'male'"))
+                    else:
+                        conn.execute(text("ALTER TABLE employees ADD COLUMN gender VARCHAR(10) DEFAULT 'male'"))
+                    conn.commit()
+                    print("Migrated: added gender column to employees")
+                except Exception as e:
+                    print(f"Gender column migration note: {e}")
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+
+        conn.commit()
+
+
 def init_db():
     Base.metadata.create_all(bind=engine)
+    _migrate_schema()
+
     db = SessionLocal()
 
-    # Ensure all leave types exist (add missing ones)
+    # Ensure all leave types exist
     existing_codes = {t.type_code for t in db.query(LeaveType).all()}
     all_types = [
         ("personal", "Personal Leave", "hour", False, None, False,
@@ -116,6 +145,7 @@ def init_db():
             ))
     db.commit()
 
+    # Seed demo employees only if empty
     if db.query(Employee).count() == 0:
         employees = [
             Employee(emp_no="E001", name="Wang Xiaoming", gender="male",
@@ -132,7 +162,6 @@ def init_db():
         emps = db.query(Employee).all()
         for emp in emps:
             for t in types:
-                # Menstrual leave only for female
                 if t.type_code == "menstrual" and emp.gender != "female":
                     continue
                 quota = 999.0
@@ -143,12 +172,40 @@ def init_db():
                 elif t.type_code == "bereavement":
                     quota = 15.0
                 elif t.type_code == "menstrual":
-                    quota = 12.0  # 1 day/month
-                balance = LeaveBalance(
+                    quota = 12.0
+                db.add(LeaveBalance(
                     emp_id=emp.emp_id, type_id=t.type_id, year=2026,
                     total_quota=quota, used=0.0, remaining=quota
-                )
-                db.add(balance)
+                ))
+        db.commit()
+    else:
+        # For existing employees: ensure gender is set, and create missing balances for new leave types
+        emps = db.query(Employee).all()
+        types = db.query(LeaveType).all()
+        for emp in emps:
+            if not emp.gender:
+                emp.gender = "male"
+            for t in types:
+                if t.type_code == "menstrual" and (emp.gender or "male") != "female":
+                    continue
+                exists = db.query(LeaveBalance).filter(
+                    LeaveBalance.emp_id == emp.emp_id,
+                    LeaveBalance.type_id == t.type_id
+                ).first()
+                if not exists:
+                    quota = 999.0
+                    if t.type_code == "annual":
+                        quota = emp.annual_leave_days or 10
+                    elif t.type_code == "sick":
+                        quota = 30.0 * 8
+                    elif t.type_code == "bereavement":
+                        quota = 15.0
+                    elif t.type_code == "menstrual":
+                        quota = 12.0
+                    db.add(LeaveBalance(
+                        emp_id=emp.emp_id, type_id=t.type_id, year=2026,
+                        total_quota=quota, used=0.0, remaining=quota
+                    ))
         db.commit()
 
     db.close()
