@@ -20,6 +20,7 @@ class EmployeeOut(BaseModel):
     emp_id: int
     emp_no: str
     name: str
+    gender: str = "male"
     department: str
     hire_date: str
     annual_leave_days: float
@@ -31,13 +32,15 @@ class EmployeeOut(BaseModel):
 class EmployeeCreate(BaseModel):
     emp_no: str
     name: str
-    department: str = "一般部門"
+    gender: str = "male"  # male / female
+    department: str = "General"
     hire_date: str = "2024-01-01"
     annual_leave_days: float = 10.0
 
 
 class EmployeeUpdate(BaseModel):
     name: Optional[str] = None
+    gender: Optional[str] = None
     department: Optional[str] = None
     hire_date: Optional[str] = None
     annual_leave_days: Optional[float] = None

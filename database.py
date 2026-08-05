@@ -4,10 +4,8 @@ from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 import os
 
-# 支援本機 SQLite 與雲端 PostgreSQL
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////tmp/leave_system.db")
 
-# Render / Railway 等平台會提供 postgres://，需轉成 sqlalchemy 格式
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
@@ -24,9 +22,9 @@ class LeaveType(Base):
     __tablename__ = "leave_types"
 
     type_id = Column(Integer, primary_key=True, index=True)
-    type_code = Column(String(20), unique=True, nullable=False)
+    type_code = Column(String(30), unique=True, nullable=False)
     type_name = Column(String(50), nullable=False)
-    unit = Column(String(10), default="hour")  # hour / day
+    unit = Column(String(10), default="hour")
     is_paid = Column(Boolean, default=False)
     max_days_per_year = Column(Float, nullable=True)
     need_proof = Column(Boolean, default=False)
@@ -42,7 +40,8 @@ class Employee(Base):
     emp_id = Column(Integer, primary_key=True, index=True)
     emp_no = Column(String(20), unique=True, nullable=False)
     name = Column(String(50), nullable=False)
-    department = Column(String(50), default="一般部門")
+    gender = Column(String(10), default="male")  # male / female
+    department = Column(String(50), default="General")
     hire_date = Column(String(20), default="2023-01-01")
     annual_leave_days = Column(Float, default=14.0)
 
@@ -89,32 +88,42 @@ def init_db():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
-    if db.query(LeaveType).count() == 0:
-        leave_types = [
-            LeaveType(type_code="personal", type_name="Personal Leave", unit="hour", is_paid=False,
-                      max_days_per_year=None, need_proof=False,
-                      description="Personal affairs leave, unpaid, calculated in hours"),
-            LeaveType(type_code="sick", type_name="Sick Leave", unit="hour", is_paid=True,
-                      max_days_per_year=30.0, need_proof=True,
-                      description="Sick leave, medical certificate required, max 30 days per year"),
-            LeaveType(type_code="annual", type_name="Annual Leave", unit="day", is_paid=True,
-                      max_days_per_year=None, need_proof=False,
-                      description="Annual leave based on seniority, paid"),
-            LeaveType(type_code="official", type_name="Official Leave", unit="day", is_paid=True,
-                      max_days_per_year=None, need_proof=True,
-                      description="Official or statutory leave, supporting documents required"),
-            LeaveType(type_code="bereavement", type_name="Bereavement Leave", unit="day", is_paid=True,
-                      max_days_per_year=15.0, need_proof=True,
-                      description="Bereavement leave for deceased relatives, 3-15 days depending on relationship"),
-        ]
-        db.add_all(leave_types)
-        db.commit()
+    # Ensure all leave types exist (add missing ones)
+    existing_codes = {t.type_code for t in db.query(LeaveType).all()}
+    all_types = [
+        ("personal", "Personal Leave", "hour", False, None, False,
+         "Personal affairs leave, unpaid, calculated in hours"),
+        ("sick", "Sick Leave", "hour", True, 30.0, True,
+         "Sick leave, medical certificate required, max 30 days per year"),
+        ("annual", "Annual Leave", "day", True, None, False,
+         "Annual leave based on seniority, paid"),
+        ("official", "Official Leave", "day", True, None, True,
+         "Official or statutory leave, supporting documents required"),
+        ("bereavement", "Bereavement Leave", "day", True, 15.0, True,
+         "Bereavement leave for deceased relatives, 3-15 days depending on relationship"),
+        ("business", "Business Leave", "day", True, None, True,
+         "Business trip or company business leave, paid, supporting documents required"),
+        ("errand", "Errand Leave", "hour", True, None, False,
+         "Short errand / outdoor duty leave, paid, calculated in hours"),
+        ("menstrual", "Menstrual Leave", "day", True, 12.0, False,
+         "Menstrual leave for female employees, 1 day per month (half-pay), max 12 days/year"),
+    ]
+    for code, name, unit, paid, maxd, proof, desc in all_types:
+        if code not in existing_codes:
+            db.add(LeaveType(
+                type_code=code, type_name=name, unit=unit, is_paid=paid,
+                max_days_per_year=maxd, need_proof=proof, description=desc
+            ))
+    db.commit()
 
     if db.query(Employee).count() == 0:
         employees = [
-            Employee(emp_no="E001", name="王小明", department="研發部", hire_date="2022-03-15", annual_leave_days=14.0),
-            Employee(emp_no="E002", name="李美華", department="人資部", hire_date="2021-07-01", annual_leave_days=15.0),
-            Employee(emp_no="E003", name="陳大文", department="業務部", hire_date="2023-01-10", annual_leave_days=10.0),
+            Employee(emp_no="E001", name="Wang Xiaoming", gender="male",
+                     department="R&D", hire_date="2022-03-15", annual_leave_days=14.0),
+            Employee(emp_no="E002", name="Li Meihua", gender="female",
+                     department="HR", hire_date="2021-07-01", annual_leave_days=15.0),
+            Employee(emp_no="E003", name="Chen Dawen", gender="male",
+                     department="Sales", hire_date="2023-01-10", annual_leave_days=10.0),
         ]
         db.add_all(employees)
         db.commit()
@@ -123,6 +132,9 @@ def init_db():
         emps = db.query(Employee).all()
         for emp in emps:
             for t in types:
+                # Menstrual leave only for female
+                if t.type_code == "menstrual" and emp.gender != "female":
+                    continue
                 quota = 999.0
                 if t.type_code == "annual":
                     quota = emp.annual_leave_days
@@ -130,7 +142,8 @@ def init_db():
                     quota = 30.0 * 8
                 elif t.type_code == "bereavement":
                     quota = 15.0
-
+                elif t.type_code == "menstrual":
+                    quota = 12.0  # 1 day/month
                 balance = LeaveBalance(
                     emp_id=emp.emp_id, type_id=t.type_id, year=2026,
                     total_quota=quota, used=0.0, remaining=quota

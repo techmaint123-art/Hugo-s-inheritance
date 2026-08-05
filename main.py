@@ -13,7 +13,7 @@ import time
 from database import init_db, get_db, LeaveType, Employee, LeaveBalance, LeaveRequest
 from schemas import LeaveRequestCreate, ApproveRequest, EmployeeCreate, EmployeeUpdate
 
-app = FastAPI(title="Ansett Leave Apply System", version="2.2.0")
+app = FastAPI(title="Ansett Leave Apply System", version="2.5.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -57,40 +57,55 @@ def get_employees(db: Session = Depends(get_db)):
     return db.query(Employee).all()
 
 
+def _create_balances_for_employee(db, emp):
+    types = db.query(LeaveType).all()
+    for t in types:
+        if t.type_code == "menstrual" and emp.gender != "female":
+            continue
+        # skip if balance already exists
+        exists = db.query(LeaveBalance).filter(
+            LeaveBalance.emp_id == emp.emp_id, LeaveBalance.type_id == t.type_id
+        ).first()
+        if exists:
+            continue
+        quota = 999.0
+        if t.type_code == "annual":
+            quota = emp.annual_leave_days
+        elif t.type_code == "sick":
+            quota = 30.0 * 8
+        elif t.type_code == "bereavement":
+            quota = 15.0
+        elif t.type_code == "menstrual":
+            quota = 12.0
+        db.add(LeaveBalance(
+            emp_id=emp.emp_id, type_id=t.type_id, year=2026,
+            total_quota=quota, used=0.0, remaining=quota
+        ))
+    db.commit()
+
+
 @app.post("/api/employees")
 def create_employee(data: EmployeeCreate, db: Session = Depends(get_db)):
+    if data.gender not in ("male", "female"):
+        raise HTTPException(status_code=400, detail="Gender must be male or female")
     exists = db.query(Employee).filter(Employee.emp_no == data.emp_no).first()
     if exists:
         raise HTTPException(status_code=400, detail=f"Employee No. {data.emp_no} already exists")
 
     emp = Employee(
-        emp_no=data.emp_no,
-        name=data.name,
-        department=data.department,
-        hire_date=data.hire_date,
+        emp_no=data.emp_no, name=data.name, gender=data.gender,
+        department=data.department, hire_date=data.hire_date,
         annual_leave_days=data.annual_leave_days
     )
     db.add(emp)
     db.commit()
     db.refresh(emp)
+    _create_balances_for_employee(db, emp)
 
-    types = db.query(LeaveType).all()
-    for t in types:
-        quota = 999.0
-        if t.type_code == "annual":
-            quota = data.annual_leave_days
-        elif t.type_code == "sick":
-            quota = 30.0 * 8
-        elif t.type_code == "bereavement":
-            quota = 15.0
-        balance = LeaveBalance(
-            emp_id=emp.emp_id, type_id=t.type_id, year=2026,
-            total_quota=quota, used=0.0, remaining=quota
-        )
-        db.add(balance)
-    db.commit()
-
-    return {"message": f"Employee {data.name} added successfully", "emp_id": emp.emp_id, "emp_no": emp.emp_no, "name": emp.name}
+    return {
+        "message": f"Employee {data.name} added successfully",
+        "emp_id": emp.emp_id, "emp_no": emp.emp_no, "name": emp.name
+    }
 
 
 @app.put("/api/employees/{emp_id}")
@@ -101,13 +116,26 @@ def update_employee(emp_id: int, data: EmployeeUpdate, db: Session = Depends(get
 
     if data.name is not None:
         emp.name = data.name
+    if data.gender is not None:
+        if data.gender not in ("male", "female"):
+            raise HTTPException(status_code=400, detail="Gender must be male or female")
+        old_gender = emp.gender
+        emp.gender = data.gender
+        # If changed to female, create menstrual balance; if to male, remove it
+        if data.gender == "female" and old_gender != "female":
+            _create_balances_for_employee(db, emp)
+        elif data.gender == "male" and old_gender == "female":
+            menstrual = db.query(LeaveType).filter(LeaveType.type_code == "menstrual").first()
+            if menstrual:
+                db.query(LeaveBalance).filter(
+                    LeaveBalance.emp_id == emp_id, LeaveBalance.type_id == menstrual.type_id
+                ).delete()
     if data.department is not None:
         emp.department = data.department
     if data.hire_date is not None:
         emp.hire_date = data.hire_date
     if data.annual_leave_days is not None:
         emp.annual_leave_days = data.annual_leave_days
-        # 同步更新年假餘額總額
         annual_type = db.query(LeaveType).filter(LeaveType.type_code == "annual").first()
         if annual_type:
             bal = db.query(LeaveBalance).filter(
@@ -128,22 +156,18 @@ def delete_employee(emp_id: int, db: Session = Depends(get_db)):
     emp = db.query(Employee).filter(Employee.emp_id == emp_id).first()
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found")
-
-    # 檢查是否有待審或已核准的請假
     active_req = db.query(LeaveRequest).filter(
         LeaveRequest.emp_id == emp_id,
         LeaveRequest.status.in_(["pending", "approved"])
     ).first()
     if active_req:
         raise HTTPException(status_code=400, detail="This employee has active leave records and cannot be deleted.")
-
-    # 刪除餘額
     db.query(LeaveBalance).filter(LeaveBalance.emp_id == emp_id).delete()
-    # 刪除已取消/駁回的申請
     db.query(LeaveRequest).filter(LeaveRequest.emp_id == emp_id).delete()
+    name = emp.name
     db.delete(emp)
     db.commit()
-    return {"message": f"Employee {emp.name} deleted"}
+    return {"message": f"Employee {name} deleted"}
 
 
 @app.get("/api/balances/{emp_id}")
@@ -198,14 +222,20 @@ def create_request(data: LeaveRequestCreate, db: Session = Depends(get_db)):
     ltype = db.query(LeaveType).filter(LeaveType.type_id == data.type_id).first()
     if not ltype:
         raise HTTPException(status_code=404, detail="Leave type not found")
+
+    # Menstrual leave only for female
+    if ltype.type_code == "menstrual" and emp.gender != "female":
+        raise HTTPException(status_code=400, detail="Menstrual Leave is only available for female employees")
+
     balance = db.query(LeaveBalance).filter(
         LeaveBalance.emp_id == data.emp_id, LeaveBalance.type_id == data.type_id, LeaveBalance.year == 2026
     ).first()
     if not balance:
         raise HTTPException(status_code=400, detail="Balance record not found")
     need = data.total_hours if ltype.unit == "hour" else data.total_days
-    if balance.remaining < need and ltype.type_code not in ("personal", "official"):
-        raise HTTPException(status_code=400, detail=f"Insufficient balance！目前剩餘 {balance.remaining}，申請需要 {need}")
+    if balance.remaining < need and ltype.type_code not in ("personal", "official", "business", "errand"):
+        raise HTTPException(status_code=400, detail=f"Insufficient balance! Remaining {balance.remaining}, required {need}")
+
     new_req = LeaveRequest(
         emp_id=data.emp_id, type_id=data.type_id,
         start_datetime=data.start_datetime, end_datetime=data.end_datetime,
@@ -238,10 +268,11 @@ def approve_request(data: ApproveRequest, db: Session = Depends(get_db)):
     elif data.action == "reject":
         req.status = "rejected"
     else:
-        raise HTTPException(status_code=400, detail="action 必須是 approve 或 reject")
+        raise HTTPException(status_code=400, detail="action must be approve or reject")
     req.approver_comment = data.comment
     db.commit()
-    return {"message": f"申請已{'核准' if data.action == 'approve' else '駁回'}", "request_id": req.request_id, "status": req.status}
+    return {"message": f"Request {'approved' if data.action == 'approve' else 'rejected'}",
+            "request_id": req.request_id, "status": req.status}
 
 
 @app.delete("/api/requests/{request_id}")
@@ -258,7 +289,7 @@ def cancel_request(request_id: int, db: Session = Depends(get_db)):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "version": "2.2.0"}
+    return {"status": "ok", "version": "2.5.0"}
 
 
 def open_browser():

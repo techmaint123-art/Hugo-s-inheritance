@@ -15,67 +15,69 @@ body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; background:
 header {
   background: linear-gradient(135deg, #0f172a, #1e3a5f);
   color: white;
-  padding: 0.7rem 1.5rem;
+  padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
   flex-wrap: wrap;
-  gap: 0.8rem;
+  gap: 1rem;
+  min-height: 90px;
 }
 .header-left {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: 1.2rem;
 }
 .header-left img {
-  height: 52px;
+  height: 72px;
   width: auto;
   object-fit: contain;
   background: white;
-  border-radius: 6px;
-  padding: 3px 6px;
+  border-radius: 8px;
+  padding: 4px 8px;
 }
 .header-left h1 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: 0.3px;
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
 }
 .header-right {
   text-align: right;
   font-variant-numeric: tabular-nums;
-  line-height: 1.35;
+  line-height: 1.4;
+  min-width: 140px;
 }
 .header-right .date {
-  font-size: 0.95rem;
+  font-size: 1.15rem;
   font-weight: 600;
 }
 .header-right .time {
-  font-size: 1.35rem;
+  font-size: 1.8rem;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
 }
 .header-right .weekday {
-  font-size: 0.8rem;
-  opacity: 0.85;
+  font-size: 0.95rem;
+  opacity: 0.9;
 }
-.container { max-width: 1100px; margin: 0 auto; padding: 1.2rem; }
-.tabs { display: flex; gap: 0.4rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+.container { max-width: 1200px; margin: 0 auto; padding: 1.4rem; }
+.tabs { display: flex; gap: 0.5rem; margin-bottom: 1.3rem; flex-wrap: wrap; }
 .tab {
-  padding: 0.55rem 1.1rem; border: none; background: white; border-radius: 8px;
-  cursor: pointer; font-size: 0.9rem; color: var(--muted); transition: all 0.2s;
+  padding: 0.6rem 1.3rem; border: none; background: white; border-radius: 8px;
+  cursor: pointer; font-size: 0.95rem; color: var(--muted); transition: all 0.2s;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 .tab.active, .tab:hover { background: var(--primary); color: white; }
 .panel { display: none; }
 .panel.active { display: block; }
 .card {
-  background: var(--card); border-radius: 12px; padding: 1.3rem;
+  background: var(--card); border-radius: 12px; padding: 1.4rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 1.2rem;
 }
 .card h2 {
-  font-size: 1.1rem; margin-bottom: 1rem; color: var(--primary-dark);
-  border-bottom: 2px solid var(--border); padding-bottom: 0.45rem;
+  font-size: 1.15rem; margin-bottom: 1rem; color: var(--primary-dark);
+  border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;
 }
 .form-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.9rem;
@@ -131,7 +133,7 @@ tr:hover { background: #f8fafc; }
 }
 .modal-bg.show { display: flex; }
 .modal {
-  background: white; border-radius: 12px; padding: 1.5rem; width: 90%; max-width: 480px;
+  background: white; border-radius: 12px; padding: 1.5rem; width: 90%; max-width: 500px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.2);
 }
 .modal h3 { margin-bottom: 1rem; color: var(--primary-dark); }
@@ -139,10 +141,12 @@ footer {
   text-align: center; padding: 1.2rem; color: var(--muted); font-size: 0.8rem;
   border-top: 1px solid var(--border); margin-top: 1rem;
 }
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   .form-grid { grid-template-columns: 1fr; }
-  .header-left h1 { font-size: 1rem; }
-  .header-left img { height: 40px; }
+  .header-left h1 { font-size: 1.15rem; }
+  .header-left img { height: 48px; }
+  .header-right .time { font-size: 1.4rem; }
+  .header-right .date { font-size: 0.95rem; }
 }
 </style>
 </head>
@@ -180,8 +184,10 @@ footer {
           <div><label>Leave Type</label><select id="type_id" required></select></div>
           <div><label>Start Date & Time</label><input type="datetime-local" id="start_datetime" required></div>
           <div><label>End Date & Time</label><input type="datetime-local" id="end_datetime" required></div>
-          <div><label>Total Hours</label><input type="number" id="total_hours" step="0.5" min="0" value="8"></div>
-          <div><label>Total Days</label><input type="number" id="total_days" step="0.5" min="0" value="1"></div>
+          <div><label>Total Hours <span style="color:var(--muted);font-weight:400;">(auto / editable)</span></label>
+            <input type="number" id="total_hours" step="0.5" min="0" value="0"></div>
+          <div><label>Total Days <span style="color:var(--muted);font-weight:400;">(auto / editable)</span></label>
+            <input type="number" id="total_days" step="0.5" min="0" value="0"></div>
         </div>
         <div style="margin-top:0.9rem;"><label>Reason</label><textarea id="reason" placeholder="Please briefly describe the reason..."></textarea></div>
         <p class="hint" id="unitHint"></p>
@@ -194,7 +200,7 @@ footer {
   <div id="panel-balance" class="panel">
     <div class="card">
       <h2>Leave Balance</h2>
-      <div style="max-width:260px;margin-bottom:1rem;">
+      <div style="max-width:280px;margin-bottom:1rem;">
         <label>Select Employee</label><select id="balance_emp"></select>
       </div>
       <div id="balanceList" class="balance-grid"></div>
@@ -246,10 +252,18 @@ footer {
         <div class="form-grid">
           <div><label>Employee No. *</label><input type="text" id="new_emp_no" required placeholder="e.g. E004"></div>
           <div><label>Name *</label><input type="text" id="new_name" required placeholder="e.g. John Smith"></div>
+          <div>
+            <label>Gender *</label>
+            <select id="new_gender" required>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
           <div><label>Department</label><input type="text" id="new_department" value="General"></div>
           <div><label>Hire Date</label><input type="date" id="new_hire_date" value="2024-01-01"></div>
           <div><label>Annual Leave Days</label><input type="number" id="new_annual" step="0.5" min="0" value="10"></div>
         </div>
+        <p class="hint">Female employees automatically receive Menstrual Leave (1 day/month, half-pay, max 12 days/year).</p>
         <div style="margin-top:1rem;">
           <button type="submit" class="btn btn-primary">Add Employee</button>
         </div>
@@ -261,7 +275,7 @@ footer {
         <table>
           <thead>
             <tr>
-              <th>Emp No.</th><th>Name</th><th>Department</th><th>Hire Date</th><th>Annual Days</th><th>Actions</th>
+              <th>Emp No.</th><th>Name</th><th>Gender</th><th>Department</th><th>Hire Date</th><th>Annual Days</th><th>Actions</th>
             </tr>
           </thead>
           <tbody id="empTable"></tbody>
@@ -279,6 +293,13 @@ footer {
     <div class="form-grid" style="margin-bottom:1rem;">
       <div><label>Employee No. (read-only)</label><input type="text" id="edit_emp_no" disabled></div>
       <div><label>Name *</label><input type="text" id="edit_name" required></div>
+      <div>
+        <label>Gender</label>
+        <select id="edit_gender">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
       <div><label>Department</label><input type="text" id="edit_department"></div>
       <div><label>Hire Date</label><input type="date" id="edit_hire_date"></div>
       <div><label>Annual Leave Days</label><input type="number" id="edit_annual" step="0.5" min="0"></div>
@@ -293,30 +314,54 @@ footer {
 <footer>Ansett Leave Apply System - Intellectual Property Editor: own by Hugo Guo!</footer>
 
 <script>
-// ===== Live Clock (UTC+8 / Taiwan Time) =====
+// ===== Live Clock (UTC+8) =====
 const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const weekdays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 function updateClock() {
-  // Get current time in Asia/Taipei (UTC+8)
   const now = new Date();
   const tw = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
-  
   const day = String(tw.getDate()).padStart(2, '0');
   const mon = months[tw.getMonth()];
   const year = tw.getFullYear();
   const hh = String(tw.getHours()).padStart(2, '0');
   const mm = String(tw.getMinutes()).padStart(2, '0');
-  const weekday = weekdays[tw.getDay()];
-
   document.getElementById('clock-date').textContent = `${day} ${mon} ${year}`;
   document.getElementById('clock-time').textContent = `${hh}:${mm}`;
-  document.getElementById('clock-weekday').textContent = weekday;
+  document.getElementById('clock-weekday').textContent = weekdays[tw.getDay()];
 }
 updateClock();
 setInterval(updateClock, 1000);
 
-// ===== Rest of the app =====
+// ===== Auto-calculate Hours & Days =====
+function calcDuration() {
+  const startVal = document.getElementById('start_datetime').value;
+  const endVal = document.getElementById('end_datetime').value;
+  if (!startVal || !endVal) return;
+
+  const start = new Date(startVal);
+  const end = new Date(endVal);
+  if (end <= start) {
+    document.getElementById('total_hours').value = 0;
+    document.getElementById('total_days').value = 0;
+    return;
+  }
+
+  const diffMs = end - start;
+  const diffHours = diffMs / (1000 * 60 * 60);
+  // Round to nearest 0.5
+  const hours = Math.round(diffHours * 2) / 2;
+  // Days: assume 8 working hours = 1 day
+  const days = Math.round((hours / 8) * 2) / 2;
+
+  document.getElementById('total_hours').value = hours;
+  document.getElementById('total_days').value = days;
+}
+
+document.getElementById('start_datetime').addEventListener('change', calcDuration);
+document.getElementById('end_datetime').addEventListener('change', calcDuration);
+
+// ===== App Logic =====
 function showAlert(msg, type = 'success') {
   const el = document.getElementById('alert');
   el.className = 'alert alert-' + type;
@@ -330,6 +375,7 @@ function statusText(s) {
 }
 
 let employeesCache = [];
+let leaveTypesCache = [];
 
 async function loadEmployees() {
   const res = await fetch('/api/employees');
@@ -346,15 +392,16 @@ async function loadEmployees() {
     <tr>
       <td>${e.emp_no}</td>
       <td>${e.name}</td>
+      <td>${e.gender === 'female' ? 'Female' : 'Male'}</td>
       <td>${e.department}</td>
       <td>${e.hire_date}</td>
       <td>${e.annual_leave_days}</td>
       <td>
         <button class="btn btn-primary btn-sm" onclick="openEditModal(${e.emp_id})">Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteEmp(${e.emp_id}, '${e.name.replace(/'/g, "\\'")}')">Delete</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEmp(${e.emp_id}, '${(e.name||'').replace(/'/g,"\\'")}')">Delete</button>
       </td>
     </tr>
-  `).join('') || '<tr><td colspan="6" class="empty">No employees yet</td></tr>';
+  `).join('') || '<tr><td colspan="7" class="empty">No employees yet</td></tr>';
 }
 
 function openEditModal(empId) {
@@ -363,6 +410,7 @@ function openEditModal(empId) {
   document.getElementById('edit_emp_id').value = emp.emp_id;
   document.getElementById('edit_emp_no').value = emp.emp_no;
   document.getElementById('edit_name').value = emp.name;
+  document.getElementById('edit_gender').value = emp.gender || 'male';
   document.getElementById('edit_department').value = emp.department;
   document.getElementById('edit_hire_date').value = emp.hire_date;
   document.getElementById('edit_annual').value = emp.annual_leave_days;
@@ -377,14 +425,14 @@ async function saveEdit() {
   const empId = document.getElementById('edit_emp_id').value;
   const payload = {
     name: document.getElementById('edit_name').value.trim(),
+    gender: document.getElementById('edit_gender').value,
     department: document.getElementById('edit_department').value.trim(),
     hire_date: document.getElementById('edit_hire_date').value,
     annual_leave_days: parseFloat(document.getElementById('edit_annual').value) || 0
   };
   try {
     const res = await fetch(`/api/employees/${empId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
     const data = await res.json();
@@ -392,9 +440,7 @@ async function saveEdit() {
     showAlert(data.message || 'Employee updated successfully');
     closeEditModal();
     loadEmployees();
-  } catch (err) {
-    showAlert(err.message, 'error');
-  }
+  } catch (err) { showAlert(err.message, 'error'); }
 }
 
 async function deleteEmp(empId, name) {
@@ -405,35 +451,31 @@ async function deleteEmp(empId, name) {
     if (!res.ok) throw new Error(data.detail || 'Delete failed');
     showAlert(data.message || 'Employee deleted');
     loadEmployees();
-  } catch (err) {
-    showAlert(err.message, 'error');
-  }
+  } catch (err) { showAlert(err.message, 'error'); }
 }
 
 async function loadTypes() {
   const res = await fetch('/api/leave-types');
-  const list = await res.json();
-  const nameMap = {
-    '事假': 'Personal Leave', '病假': 'Sick Leave', '年假': 'Annual Leave',
-    '公假': 'Official Leave', '喪假': 'Bereavement Leave',
-    'Personal Leave': 'Personal Leave', 'Sick Leave': 'Sick Leave',
-    'Annual Leave': 'Annual Leave', 'Official Leave': 'Official Leave',
-    'Bereavement Leave': 'Bereavement Leave'
-  };
-  document.getElementById('type_id').innerHTML = list.map(t => {
-    const displayName = nameMap[t.type_name] || t.type_name;
-    return `<option value="${t.type_id}" data-unit="${t.unit}">${displayName} (${t.unit === 'hour' ? 'Hours' : 'Days'})</option>`;
-  }).join('');
+  leaveTypesCache = await res.json();
+  document.getElementById('type_id').innerHTML = leaveTypesCache.map(t =>
+    `<option value="${t.type_id}" data-unit="${t.unit}" data-code="${t.type_code}">${t.type_name} (${t.unit === 'hour' ? 'Hours' : 'Days'})</option>`
+  ).join('');
   updateUnitHint();
 }
 
 function updateUnitHint() {
   const sel = document.getElementById('type_id');
-  const unit = sel.options[sel.selectedIndex]?.dataset.unit || 'hour';
-  document.getElementById('unitHint').textContent =
-    unit === 'hour'
-      ? 'This leave type is calculated in hours. Please fill in Total Hours.'
-      : 'This leave type is calculated in days. Please fill in Total Days.';
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt) return;
+  const unit = opt.dataset.unit || 'hour';
+  const code = opt.dataset.code || '';
+  let hint = unit === 'hour'
+    ? 'This leave type is calculated in hours. Total Hours/Days are auto-calculated from the time range (editable).'
+    : 'This leave type is calculated in days. Total Hours/Days are auto-calculated from the time range (editable).';
+  if (code === 'menstrual') {
+    hint += ' Menstrual Leave is only for female employees (1 day/month, half-pay).';
+  }
+  document.getElementById('unitHint').textContent = hint;
 }
 
 document.getElementById('applyForm').addEventListener('submit', async function(e) {
@@ -464,6 +506,7 @@ document.getElementById('empForm').addEventListener('submit', async function(e) 
   const payload = {
     emp_no: document.getElementById('new_emp_no').value.trim(),
     name: document.getElementById('new_name').value.trim(),
+    gender: document.getElementById('new_gender').value,
     department: document.getElementById('new_department').value.trim() || 'General',
     hire_date: document.getElementById('new_hire_date').value || '2024-01-01',
     annual_leave_days: parseFloat(document.getElementById('new_annual').value) || 10
@@ -480,6 +523,7 @@ document.getElementById('empForm').addEventListener('submit', async function(e) 
     document.getElementById('new_department').value = 'General';
     document.getElementById('new_hire_date').value = '2024-01-01';
     document.getElementById('new_annual').value = 10;
+    document.getElementById('new_gender').value = 'male';
     loadEmployees();
   } catch (err) { showAlert(err.message, 'error'); }
 });
@@ -489,23 +533,14 @@ async function loadBalances() {
   if (!empId) return;
   const res = await fetch(`/api/balances/${empId}`);
   const list = await res.json();
-  const nameMap = {
-    '事假': 'Personal Leave', '病假': 'Sick Leave', '年假': 'Annual Leave',
-    '公假': 'Official Leave', '喪假': 'Bereavement Leave',
-    'Personal Leave': 'Personal Leave', 'Sick Leave': 'Sick Leave',
-    'Annual Leave': 'Annual Leave', 'Official Leave': 'Official Leave',
-    'Bereavement Leave': 'Bereavement Leave'
-  };
-  document.getElementById('balanceList').innerHTML = list.map(b => {
-    const displayName = nameMap[b.type_name] || b.type_name;
-    return `
+  document.getElementById('balanceList').innerHTML = list.map(b => `
     <div class="balance-card">
-      <div class="name">${displayName}</div>
+      <div class="name">${b.type_name}</div>
       <div class="remain">${b.remaining}</div>
       <div class="unit">Remaining / Total ${b.total_quota} ${b.unit === 'hour' ? 'hrs' : 'days'}</div>
       <div class="unit" style="margin-top:0.25rem;">Used ${b.used}</div>
-    </div>`;
-  }).join('') || '<div class="empty">No balance data</div>';
+    </div>
+  `).join('') || '<div class="empty">No balance data</div>';
 }
 
 async function loadRequests() {
@@ -516,32 +551,23 @@ async function loadRequests() {
   if (status) url += `status=${status}`;
   const res = await fetch(url);
   const list = await res.json();
-  const nameMap = {
-    '事假': 'Personal', '病假': 'Sick', '年假': 'Annual',
-    '公假': 'Official', '喪假': 'Bereavement',
-    'Personal Leave': 'Personal', 'Sick Leave': 'Sick',
-    'Annual Leave': 'Annual', 'Official Leave': 'Official',
-    'Bereavement Leave': 'Bereavement'
-  };
   const tbody = document.getElementById('requestTable');
   if (!list.length) {
     tbody.innerHTML = '<tr><td colspan="8" class="empty">No requests found</td></tr>';
     return;
   }
-  tbody.innerHTML = list.map(r => {
-    const typeName = nameMap[r.type_name] || r.type_name;
-    return `
+  tbody.innerHTML = list.map(r => `
     <tr>
       <td>#${r.request_id}</td>
       <td>${r.emp_name}</td>
-      <td>${typeName}</td>
+      <td>${r.type_name}</td>
       <td>${r.start_datetime}<br>→ ${r.end_datetime}</td>
       <td>${r.total_hours}h / ${r.total_days}d</td>
       <td>${r.reason || '-'}</td>
       <td><span class="status status-${r.status}">${statusText(r.status)}</span></td>
       <td>${r.status === 'pending' ? `<button class="btn btn-danger btn-sm" onclick="cancelRequest(${r.request_id})">Cancel</button>` : '-'}</td>
-    </tr>`;
-  }).join('');
+    </tr>
+  `).join('');
 }
 
 async function cancelRequest(id) {
@@ -555,25 +581,16 @@ async function cancelRequest(id) {
 async function loadApproveList() {
   const res = await fetch('/api/requests?status=pending');
   const list = await res.json();
-  const nameMap = {
-    '事假': 'Personal Leave', '病假': 'Sick Leave', '年假': 'Annual Leave',
-    '公假': 'Official Leave', '喪假': 'Bereavement Leave',
-    'Personal Leave': 'Personal Leave', 'Sick Leave': 'Sick Leave',
-    'Annual Leave': 'Annual Leave', 'Official Leave': 'Official Leave',
-    'Bereavement Leave': 'Bereavement Leave'
-  };
   const container = document.getElementById('approveList');
   if (!list.length) {
     container.innerHTML = '<div class="empty">No pending approvals</div>';
     return;
   }
-  container.innerHTML = list.map(r => {
-    const typeName = nameMap[r.type_name] || r.type_name;
-    return `
+  container.innerHTML = list.map(r => `
     <div class="approve-item">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;">
         <div>
-          <strong>#${r.request_id} · ${r.emp_name}</strong> — ${typeName}<br>
+          <strong>#${r.request_id} · ${r.emp_name}</strong> — ${r.type_name}<br>
           <span style="color:var(--muted);font-size:0.88rem;">
             ${r.start_datetime} → ${r.end_datetime}　｜　${r.total_hours}h / ${r.total_days}d
           </span><br>
@@ -584,8 +601,8 @@ async function loadApproveList() {
           <button class="btn btn-danger btn-sm" onclick="doApprove(${r.request_id}, 'reject')">Reject</button>
         </div>
       </div>
-    </div>`;
-  }).join('');
+    </div>
+  `).join('');
 }
 
 async function doApprove(id, action) {
@@ -618,7 +635,6 @@ document.getElementById('balance_emp').addEventListener('change', loadBalances);
 document.getElementById('filter_emp').addEventListener('change', loadRequests);
 document.getElementById('filter_status').addEventListener('change', loadRequests);
 document.getElementById('btnRefreshList').addEventListener('click', loadRequests);
-
 document.getElementById('editModal').addEventListener('click', function(e) {
   if (e.target === this) closeEditModal();
 });
@@ -629,8 +645,10 @@ document.getElementById('editModal').addEventListener('click', function(e) {
   const now = new Date();
   now.setMinutes(0, 0, 0);
   document.getElementById('start_datetime').value = now.toISOString().slice(0, 16);
-  now.setHours(now.getHours() + 8);
-  document.getElementById('end_datetime').value = now.toISOString().slice(0, 16);
+  const end = new Date(now);
+  end.setHours(end.getHours() + 8);
+  document.getElementById('end_datetime').value = end.toISOString().slice(0, 16);
+  calcDuration();
 })();
 </script>
 </body>
