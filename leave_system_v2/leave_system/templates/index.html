@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公司請假系統</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        header {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            padding: 1.2rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        header h1 { font-size: 1.5rem; font-weight: 600; }
+        header .badge {
+            background: rgba(255,255,255,0.2);
+            padding: 0.3rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: var(--muted);
+            transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .tab.active, .tab:hover {
+            background: var(--primary);
+            color: white;
+        }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 1.5rem;
+        }
+        .card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--primary-dark);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 0.3rem;
+            font-weight: 500;
+        }
+        select, input, textarea {
+            width: 100%;
+            padding: 0.55rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border 0.2s;
+        }
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+        }
+        textarea { resize: vertical; min-height: 80px; }
+        .btn {
+            padding: 0.65rem 1.4rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-sm {
+            padding: 0.35rem 0.8rem;
+            font-size: 0.8rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 0.7rem 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: var(--muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        tr:hover { background: #f8fafc; }
+        .status {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-approved { background: #dcfce7; color: #166534; }
+        .status-rejected { background: #fee2e2; color: #991b1b; }
+        .status-cancelled { background: #e2e8f0; color: #475569; }
+        .balance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+        .balance-card {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .balance-card .name { font-weight: 600; color: var(--primary-dark); }
+        .balance-card .remain {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0.4rem 0;
+        }
+        .balance-card .unit { font-size: 0.8rem; color: var(--muted); }
+        .alert {
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .alert-success { background: #dcfce7; color: #166534; }
+        .alert-error { background: #fee2e2; color: #991b1b; }
+        .empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 2rem;
+        }
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📋 公司請假系統</h1>
+        <span class="badge">Demo v1.0 · 2026</span>
+    </header>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="showPanel('apply')">請假申請</button>
+            <button class="tab" onclick="showPanel('balance')">假期餘額</button>
+            <button class="tab" onclick="showPanel('list')">申請紀錄</button>
+            <button class="tab" onclick="showPanel('approve')">主管審核</button>
+        </div>
+
+        <div id="alert" class="alert"></div>
+
+        <!-- 請假申請 -->
+        <div id="panel-apply" class="panel active">
+            <div class="card">
+                <h2>新增請假申請</h2>
+                <form id="applyForm" onsubmit="submitApply(event)">
+                    <div class="form-grid">
+                        <div>
+                            <label>申請人</label>
+                            <select id="emp_id" required></select>
+                        </div>
+                        <div>
+                            <label>假別</label>
+                            <select id="type_id" required onchange="updateUnitHint()"></select>
+                        </div>
+                        <div>
+                            <label>開始時間</label>
+                            <input type="datetime-local" id="start_datetime" required>
+                        </div>
+                        <div>
+                            <label>結束時間</label>
+                            <input type="datetime-local" id="end_datetime" required>
+                        </div>
+                        <div>
+                            <label>總時數（小時）</label>
+                            <input type="number" id="total_hours" step="0.5" min="0" value="8">
+                        </div>
+                        <div>
+                            <label>總天數（天）</label>
+                            <input type="number" id="total_days" step="0.5" min="0" value="1">
+                        </div>
+                    </div>
+                    <div style="margin-top:1rem;">
+                        <label>事由說明</label>
+                        <textarea id="reason" placeholder="請簡述請假原因..."></textarea>
+                    </div>
+                    <p id="unitHint" style="margin-top:0.8rem;color:var(--muted);font-size:0.85rem;"></p>
+                    <div style="margin-top:1.2rem;">
+                        <button type="submit" class="btn btn-primary">送出申請</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 假期餘額 -->
+        <div id="panel-balance" class="panel">
+            <div class="card">
+                <h2>查詢假期餘額</h2>
+                <div style="max-width:280px;margin-bottom:1.2rem;">
+                    <label>選擇員工</label>
+                    <select id="balance_emp" onchange="loadBalances()"></select>
+                </div>
+                <div id="balanceList" class="balance-grid"></div>
+            </div>
+        </div>
+
+        <!-- 申請紀錄 -->
+        <div id="panel-list" class="panel">
+            <div class="card">
+                <h2>請假申請紀錄</h2>
+                <div style="margin-bottom:1rem;display:flex;gap:0.8rem;flex-wrap:wrap;">
+                    <select id="filter_emp" onchange="loadRequests()" style="max-width:200px;">
+                        <option value="">全部員工</option>
+                    </select>
+                    <select id="filter_status" onchange="loadRequests()" style="max-width:160px;">
+                        <option value="">全部狀態</option>
+                        <option value="pending">待審核</option>
+                        <option value="approved">已核准</option>
+                        <option value="rejected">已駁回</option>
+                        <option value="cancelled">已取消</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="loadRequests()">重新整理</button>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>單號</th>
+                                <th>員工</th>
+                                <th>假別</th>
+                                <th>起訖時間</th>
+                                <th>時數/天數</th>
+                                <th>事由</th>
+                                <th>狀態</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requestTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主管審核 -->
+        <div id="panel-approve" class="panel">
+            <div class="card">
+                <h2>待審核申請</h2>
+                <div id="approveList"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        公司請假系統 Demo · 支援 事假 / 病假 / 年假 / 公假 / 喪假 · 時數與天數雙模式
+    </footer>
+
+    <script>
+        let leaveTypes = [];
+        let employees = [];
+
+        function showPanel(name) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('panel-' + name).classList.add('active');
+            event.target.classList.add('active');
+            if (name === 'balance') loadBalances();
+            if (name === 'list') loadRequests();
+            if (name === 'approve') loadApproveList();
+        }
+
+        function showAlert(msg, type = 'success') {
+            const el = document.getElementById('alert');
+            el.className = 'alert alert-' + type;
+            el.textContent = msg;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 4000);
+        }
+
+        async function init() {
+            // 載入假別
+            const tRes = await fetch('/api/leave-types');
+            leaveTypes = await tRes.json();
+            const typeSelect = document.getElementById('type_id');
+            typeSelect.innerHTML = leaveTypes.map(t =>
+                `<option value="${t.type_id}" data-unit="${t.unit}">${t.type_name}（${t.unit === 'hour' ? '小時' : '天'}）</option>`
+            ).join('');
+            updateUnitHint();
+
+            // 載入員工
+            const eRes = await fetch('/api/employees');
+            employees = await eRes.json();
+            const empOptions = employees.map(e =>
+                `<option value="${e.emp_id}">${e.emp_no} - ${e.name}（${e.department}）</option>`
+            ).join('');
+            document.getElementById('emp_id').innerHTML = empOptions;
+            document.getElementById('balance_emp').innerHTML = empOptions;
+            document.getElementById('filter_emp').innerHTML =
+                '<option value="">全部員工</option>' + empOptions;
+
+            // 預設時間
+            const now = new Date();
+            now.setMinutes(0);
+            const start = now.toISOString().slice(0, 16);
+            now.setHours(now.getHours() + 8);
+            const end = now.toISOString().slice(0, 16);
+            document.getElementById('start_datetime').value = start;
+            document.getElementById('end_datetime').value = end;
+        }
+
+        function updateUnitHint() {
+            const sel = document.getElementById('type_id');
+            const opt = sel.options[sel.selectedIndex];
+            const unit = opt.dataset.unit;
+            const hint = document.getElementById('unitHint');
+            if (unit === 'hour') {
+                hint.textContent = '此假別以「小時」計算，請填寫「總時數」。天數欄可忽略。';
+            } else {
+                hint.textContent = '此假別以「天」計算，請填寫「總天數」。時數欄可忽略。';
+            }
+        }
+
+        async function submitApply(e) {
+            e.preventDefault();
+            const payload = {
+                emp_id: parseInt(document.getElementById('emp_id').value),
+                type_id: parseInt(document.getElementById('type_id').value),
+                start_datetime: document.getElementById('start_datetime').value.replace('T', ' '),
+                end_datetime: document.getElementById('end_datetime').value.replace('T', ' '),
+                total_hours: parseFloat(document.getElementById('total_hours').value) || 0,
+                total_days: parseFloat(document.getElementById('total_days').value) || 0,
+                reason: document.getElementById('reason').value
+            };
+            try {
+                const res = await fetch('/api/requests', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || '申請失敗');
+                showAlert(data.message, 'success');
+                document.getElementById('reason').value = '';
+            } catch (err) {
+                showAlert(err.message, 'error');
+            }
+        }
+
+        async function loadBalances() {
+            const empId = document.getElementById('balance_emp').value;
+            const res = await fetch(`/api/balances/${empId}`);
+            const list = await res.json();
+            const container = document.getElementById('balanceList');
+            if (!list.length) {
+                container.innerHTML = '<div class="empty">尚無餘額資料</div>';
+                return;
+            }
+            container.innerHTML = list.map(b => `
+                <div class="balance-card">
+                    <div class="name">${b.type_name}</div>
+                    <div class="remain">${b.remaining}</div>
+                    <div class="unit">剩餘 / 總額 ${b.total_quota} ${b.unit === 'hour' ? '小時' : '天'}</div>
+                    <div class="unit" style="margin-top:0.3rem;">已用 ${b.used}</div>
+                </div>
+            `).join('');
+        }
+
+        async function loadRequests() {
+            const empId = document.getElementById('filter_emp').value;
+            const status = document.getElementById('filter_status').value;
+            let url = '/api/requests?';
+            if (empId) url += `emp_id=${empId}&`;
+            if (status) url += `status=${status}`;
+            const res = await fetch(url);
+            const list = await res.json();
+            const tbody = document.getElementById('requestTable');
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty">尚無申請紀錄</td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(r => `
+                <tr>
+                    <td>#${r.request_id}</td>
+                    <td>${r.emp_name}</td>
+                    <td>${r.type_name}</td>
+                    <td>${r.start_datetime}<br>→ ${r.end_datetime}</td>
+                    <td>${r.total_hours}h / ${r.total_days}d</td>
+                    <td>${r.reason || '-'}</td>
+                    <td><span class="status status-${r.status}">${statusText(r.status)}</span></td>
+                    <td>
+                        ${r.status === 'pending' ? `<button class="btn btn-danger btn-sm" onclick="cancelRequest(${r.request_id})">取消</button>` : '-'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function statusText(s) {
+            return { pending: '待審核', approved: '已核准', rejected: '已駁回', cancelled: '已取消' }[s] || s;
+        }
+
+        async function cancelRequest(id) {
+            if (!confirm('確定要取消此申請嗎？')) return;
+            const res = await fetch(`/api/requests/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (res.ok) {
+                showAlert(data.message);
+                loadRequests();
+            } else {
+                showAlert(data.detail || '取消失敗', 'error');
+            }
+        }
+
+        async function loadApproveList() {
+            const res = await fetch('/api/requests?status=pending');
+            const list = await res.json();
+            const container = document.getElementById('approveList');
+            if (!list.length) {
+                container.innerHTML = '<div class="empty">目前沒有待審核的申請</div>';
+                return;
+            }
+            container.innerHTML = list.map(r => `
+                <div style="border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;">
+                        <div>
+                            <strong>#${r.request_id} · ${r.emp_name}</strong> — ${r.type_name}<br>
+                            <span style="color:var(--muted);font-size:0.9rem;">
+                                ${r.start_datetime} → ${r.end_datetime}　｜　${r.total_hours}小時 / ${r.total_days}天
+                            </span><br>
+                            <span style="font-size:0.9rem;">事由：${r.reason || '無'}</span>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;">
+                            <button class="btn btn-success btn-sm" onclick="doApprove(${r.request_id}, 'approve')">核准</button>
+                            <button class="btn btn-danger btn-sm" onclick="doApprove(${r.request_id}, 'reject')">駁回</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function doApprove(id, action) {
+            const comment = prompt(action === 'approve' ? '核准意見（可留空）' : '駁回原因（建議填寫）', '');
+            if (comment === null) return;
+            const res = await fetch('/api/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ request_id: id, action, comment })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showAlert(data.message);
+                loadApproveList();
+            } else {
+                showAlert(data.detail || '操作失敗', 'error');
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
