@@ -1,6 +1,5 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
 
 
 class LeaveTypeOut(BaseModel):
@@ -37,6 +36,13 @@ class EmployeeCreate(BaseModel):
     annual_leave_days: float = 10.0
 
 
+class EmployeeUpdate(BaseModel):
+    name: Optional[str] = None
+    department: Optional[str] = None
+    hire_date: Optional[str] = None
+    annual_leave_days: Optional[float] = None
+
+
 class LeaveRequestCreate(BaseModel):
     emp_id: int
     type_id: int
@@ -49,5 +55,5 @@ class LeaveRequestCreate(BaseModel):
 
 class ApproveRequest(BaseModel):
     request_id: int
-    action: str  # approve / reject
+    action: str
     comment: Optional[str] = None
