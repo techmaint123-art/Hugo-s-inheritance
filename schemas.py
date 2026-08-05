@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 
 
@@ -29,48 +29,22 @@ class EmployeeOut(BaseModel):
         from_attributes = True
 
 
-class LeaveBalanceOut(BaseModel):
-    balance_id: int
-    emp_id: int
-    type_id: int
-    type_name: str
-    unit: str
-    year: int
-    total_quota: float
-    used: float
-    remaining: float
-
-    class Config:
-        from_attributes = True
+class EmployeeCreate(BaseModel):
+    emp_no: str
+    name: str
+    department: str = "一般部門"
+    hire_date: str = "2024-01-01"
+    annual_leave_days: float = 10.0
 
 
 class LeaveRequestCreate(BaseModel):
     emp_id: int
     type_id: int
-    start_datetime: str  # "2026-08-10 09:00"
+    start_datetime: str
     end_datetime: str
     total_hours: float = 0.0
     total_days: float = 0.0
     reason: Optional[str] = None
-
-
-class LeaveRequestOut(BaseModel):
-    request_id: int
-    emp_id: int
-    emp_name: str
-    type_id: int
-    type_name: str
-    start_datetime: str
-    end_datetime: str
-    total_hours: float
-    total_days: float
-    reason: Optional[str]
-    status: str
-    created_at: Optional[datetime]
-    approver_comment: Optional[str]
-
-    class Config:
-        from_attributes = True
 
 
 class ApproveRequest(BaseModel):

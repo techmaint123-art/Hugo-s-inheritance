@@ -4,7 +4,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from datetime import datetime
 import os
 import sys
 import webbrowser
@@ -12,11 +11,10 @@ import threading
 import time
 
 from database import init_db, get_db, LeaveType, Employee, LeaveBalance, LeaveRequest
-from schemas import LeaveRequestCreate, ApproveRequest
+from schemas import LeaveRequestCreate, ApproveRequest, EmployeeCreate
 
-app = FastAPI(title="公司請假系統", version="2.0.0")
+app = FastAPI(title="公司請假系統", version="2.1.0")
 
-# 允許跨網域（多機同步必要）
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,7 +23,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 支援 PyInstaller 打包後的路徑
 if getattr(sys, 'frozen', False):
     base_path = sys._MEIPASS
 else:
@@ -58,6 +55,54 @@ def get_leave_types(db: Session = Depends(get_db)):
 @app.get("/api/employees")
 def get_employees(db: Session = Depends(get_db)):
     return db.query(Employee).all()
+
+
+@app.post("/api/employees")
+def create_employee(data: EmployeeCreate, db: Session = Depends(get_db)):
+    # 檢查工號是否重複
+    exists = db.query(Employee).filter(Employee.emp_no == data.emp_no).first()
+    if exists:
+        raise HTTPException(status_code=400, detail=f"工號 {data.emp_no} 已存在")
+
+    emp = Employee(
+        emp_no=data.emp_no,
+        name=data.name,
+        department=data.department,
+        hire_date=data.hire_date,
+        annual_leave_days=data.annual_leave_days
+    )
+    db.add(emp)
+    db.commit()
+    db.refresh(emp)
+
+    # 自動建立各假別餘額
+    types = db.query(LeaveType).all()
+    for t in types:
+        quota = 999.0
+        if t.type_code == "annual":
+            quota = data.annual_leave_days
+        elif t.type_code == "sick":
+            quota = 30.0 * 8
+        elif t.type_code == "bereavement":
+            quota = 15.0
+
+        balance = LeaveBalance(
+            emp_id=emp.emp_id,
+            type_id=t.type_id,
+            year=2026,
+            total_quota=quota,
+            used=0.0,
+            remaining=quota
+        )
+        db.add(balance)
+    db.commit()
+
+    return {
+        "message": f"員工 {data.name} 新增成功",
+        "emp_id": emp.emp_id,
+        "emp_no": emp.emp_no,
+        "name": emp.name
+    }
 
 
 @app.get("/api/balances/{emp_id}")
@@ -202,7 +247,7 @@ def cancel_request(request_id: int, db: Session = Depends(get_db)):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "version": "2.0.0"}
+    return {"status": "ok", "version": "2.1.0"}
 
 
 def open_browser():
@@ -214,7 +259,6 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     if os.getenv("RENDER") or os.getenv("RAILWAY_ENVIRONMENT"):
-        # 雲端部署時不自動開瀏覽器
         uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
     else:
         threading.Thread(target=open_browser, daemon=True).start()
