@@ -13,12 +13,52 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 header {
-  background: linear-gradient(135deg, #1e40af, #3b82f6); color: white;
-  padding: 1.1rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12); flex-wrap: wrap; gap: 0.5rem;
+  background: linear-gradient(135deg, #0f172a, #1e3a5f);
+  color: white;
+  padding: 0.7rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  flex-wrap: wrap;
+  gap: 0.8rem;
 }
-header h1 { font-size: 1.35rem; font-weight: 600; }
-.badge { background: rgba(255,255,255,0.2); padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.8rem; }
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+.header-left img {
+  height: 52px;
+  width: auto;
+  object-fit: contain;
+  background: white;
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+.header-left h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.header-right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+}
+.header-right .date {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.header-right .time {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.header-right .weekday {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
 .container { max-width: 1100px; margin: 0 auto; padding: 1.2rem; }
 .tabs { display: flex; gap: 0.4rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
 .tab {
@@ -95,14 +135,28 @@ tr:hover { background: #f8fafc; }
   box-shadow: 0 10px 40px rgba(0,0,0,0.2);
 }
 .modal h3 { margin-bottom: 1rem; color: var(--primary-dark); }
-footer { text-align: center; padding: 1.2rem; color: var(--muted); font-size: 0.8rem; }
-@media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+footer {
+  text-align: center; padding: 1.2rem; color: var(--muted); font-size: 0.8rem;
+  border-top: 1px solid var(--border); margin-top: 1rem;
+}
+@media (max-width: 600px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .header-left h1 { font-size: 1rem; }
+  .header-left img { height: 40px; }
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>📋 Ansett Leave Apply System</h1>
-  <span class="badge">v2.2 · Multi-device Sync</span>
+  <div class="header-left">
+    <img src="/static/logo.png" alt="Ansett Aviation Training">
+    <h1>Ansett Leave Apply System</h1>
+  </div>
+  <div class="header-right">
+    <div class="date" id="clock-date">-- --- ----</div>
+    <div class="time" id="clock-time">--:--</div>
+    <div class="weekday" id="clock-weekday">--------</div>
+  </div>
 </header>
 
 <div class="container">
@@ -236,9 +290,33 @@ footer { text-align: center; padding: 1.2rem; color: var(--muted); font-size: 0.
   </div>
 </div>
 
-<footer>Ansett Leave Apply System · Personal / Sick / Annual / Official / Bereavement Leave · Multi-device Sync</footer>
+<footer>Ansett Leave Apply System - Intellectual Property Editor: own by Hugo Guo!</footer>
 
 <script>
+// ===== Live Clock (UTC+8 / Taiwan Time) =====
+const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const weekdays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function updateClock() {
+  // Get current time in Asia/Taipei (UTC+8)
+  const now = new Date();
+  const tw = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+  
+  const day = String(tw.getDate()).padStart(2, '0');
+  const mon = months[tw.getMonth()];
+  const year = tw.getFullYear();
+  const hh = String(tw.getHours()).padStart(2, '0');
+  const mm = String(tw.getMinutes()).padStart(2, '0');
+  const weekday = weekdays[tw.getDay()];
+
+  document.getElementById('clock-date').textContent = `${day} ${mon} ${year}`;
+  document.getElementById('clock-time').textContent = `${hh}:${mm}`;
+  document.getElementById('clock-weekday').textContent = weekday;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ===== Rest of the app =====
 function showAlert(msg, type = 'success') {
   const el = document.getElementById('alert');
   el.className = 'alert alert-' + type;
@@ -335,13 +413,12 @@ async function deleteEmp(empId, name) {
 async function loadTypes() {
   const res = await fetch('/api/leave-types');
   const list = await res.json();
-  // Map Chinese leave type names to English for display
   const nameMap = {
-    '事假': 'Personal Leave',
-    '病假': 'Sick Leave',
-    '年假': 'Annual Leave',
-    '公假': 'Official Leave',
-    '喪假': 'Bereavement Leave'
+    '事假': 'Personal Leave', '病假': 'Sick Leave', '年假': 'Annual Leave',
+    '公假': 'Official Leave', '喪假': 'Bereavement Leave',
+    'Personal Leave': 'Personal Leave', 'Sick Leave': 'Sick Leave',
+    'Annual Leave': 'Annual Leave', 'Official Leave': 'Official Leave',
+    'Bereavement Leave': 'Bereavement Leave'
   };
   document.getElementById('type_id').innerHTML = list.map(t => {
     const displayName = nameMap[t.type_name] || t.type_name;
@@ -414,7 +491,10 @@ async function loadBalances() {
   const list = await res.json();
   const nameMap = {
     '事假': 'Personal Leave', '病假': 'Sick Leave', '年假': 'Annual Leave',
-    '公假': 'Official Leave', '喪假': 'Bereavement Leave'
+    '公假': 'Official Leave', '喪假': 'Bereavement Leave',
+    'Personal Leave': 'Personal Leave', 'Sick Leave': 'Sick Leave',
+    'Annual Leave': 'Annual Leave', 'Official Leave': 'Official Leave',
+    'Bereavement Leave': 'Bereavement Leave'
   };
   document.getElementById('balanceList').innerHTML = list.map(b => {
     const displayName = nameMap[b.type_name] || b.type_name;
@@ -438,7 +518,10 @@ async function loadRequests() {
   const list = await res.json();
   const nameMap = {
     '事假': 'Personal', '病假': 'Sick', '年假': 'Annual',
-    '公假': 'Official', '喪假': 'Bereavement'
+    '公假': 'Official', '喪假': 'Bereavement',
+    'Personal Leave': 'Personal', 'Sick Leave': 'Sick',
+    'Annual Leave': 'Annual', 'Official Leave': 'Official',
+    'Bereavement Leave': 'Bereavement'
   };
   const tbody = document.getElementById('requestTable');
   if (!list.length) {
@@ -474,7 +557,10 @@ async function loadApproveList() {
   const list = await res.json();
   const nameMap = {
     '事假': 'Personal Leave', '病假': 'Sick Leave', '年假': 'Annual Leave',
-    '公假': 'Official Leave', '喪假': 'Bereavement Leave'
+    '公假': 'Official Leave', '喪假': 'Bereavement Leave',
+    'Personal Leave': 'Personal Leave', 'Sick Leave': 'Sick Leave',
+    'Annual Leave': 'Annual Leave', 'Official Leave': 'Official Leave',
+    'Bereavement Leave': 'Bereavement Leave'
   };
   const container = document.getElementById('approveList');
   if (!list.length) {
