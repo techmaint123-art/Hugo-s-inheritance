@@ -11,7 +11,69 @@
   --muted: #64748b; --border: #e2e8f0;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+body {
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  background: #e8eef5 url('/static/bg.jpg') center center / cover no-repeat fixed;
+}
+/* White fade overlay over background */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.72);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ===== Login Screen ===== */
+#login-screen {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+}
+#login-screen.hidden { display: none; }
+.login-box {
+  background: white;
+  border-radius: 16px;
+  padding: 2.2rem 2.4rem;
+  width: 90%; max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  text-align: center;
+}
+.login-box img {
+  height: 64px; margin-bottom: 0.8rem;
+  background: white; border-radius: 8px; padding: 4px 8px;
+}
+.login-box h2 {
+  font-size: 1.25rem; color: var(--primary-dark); margin-bottom: 0.3rem;
+}
+.login-box .sub {
+  font-size: 0.85rem; color: var(--muted); margin-bottom: 1.4rem;
+}
+.login-box label {
+  display: block; text-align: left; font-size: 0.82rem;
+  color: var(--muted); margin-bottom: 0.25rem; font-weight: 500;
+}
+.login-box input {
+  width: 100%; padding: 0.6rem 0.8rem; border: 1px solid var(--border);
+  border-radius: 8px; font-size: 0.95rem; margin-bottom: 0.9rem;
+}
+.login-box input:focus {
+  outline: none; border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+}
+.login-box .btn {
+  width: 100%; padding: 0.7rem; margin-top: 0.4rem;
+  font-size: 1rem;
+}
+.login-box .hint {
+  margin-top: 1rem; font-size: 0.78rem; color: var(--muted);
+}
+
+/* ===== Header ===== */
 header {
   background: linear-gradient(135deg, #0f172a, #1e3a5f);
   color: white;
@@ -22,45 +84,34 @@ header {
   box-shadow: 0 4px 16px rgba(0,0,0,0.2);
   flex-wrap: wrap;
   gap: 1rem;
-  min-height: 90px;
+  min-height: 100px;
 }
 .header-left {
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
+  display: flex; align-items: center; gap: 1.2rem;
 }
 .header-left img {
-  height: 72px;
-  width: auto;
-  object-fit: contain;
-  background: white;
-  border-radius: 8px;
-  padding: 4px 8px;
+  height: 76px; width: auto; object-fit: contain;
+  background: white; border-radius: 8px; padding: 4px 8px;
 }
 .header-left h1 {
-  font-size: 1.7rem;
-  font-weight: 700;
-  letter-spacing: 0.4px;
+  font-size: 1.75rem; font-weight: 700; letter-spacing: 0.4px;
 }
 .header-right {
   text-align: right;
   font-variant-numeric: tabular-nums;
-  line-height: 1.4;
-  min-width: 140px;
+  line-height: 1.35;
+  min-width: 160px;
 }
 .header-right .date {
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.35rem; font-weight: 600;
 }
 .header-right .time {
-  font-size: 1.8rem;
-  font-weight: 700;
-  letter-spacing: 1.5px;
+  font-size: 2.2rem; font-weight: 700; letter-spacing: 2px;
 }
 .header-right .weekday {
-  font-size: 0.95rem;
-  opacity: 0.9;
+  font-size: 1.1rem; opacity: 0.9; font-weight: 500;
 }
+
 .container { max-width: 1200px; margin: 0 auto; padding: 1.4rem; }
 .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.3rem; flex-wrap: wrap; }
 .tab {
@@ -72,8 +123,8 @@ header {
 .panel { display: none; }
 .panel.active { display: block; }
 .card {
-  background: var(--card); border-radius: 12px; padding: 1.4rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 1.2rem;
+  background: rgba(255,255,255,0.95); border-radius: 12px; padding: 1.4rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 1.2rem;
 }
 .card h2 {
   font-size: 1.15rem; margin-bottom: 1rem; color: var(--primary-dark);
@@ -139,18 +190,42 @@ tr:hover { background: #f8fafc; }
 .modal h3 { margin-bottom: 1rem; color: var(--primary-dark); }
 footer {
   text-align: center; padding: 1.2rem; color: var(--muted); font-size: 0.8rem;
-  border-top: 1px solid var(--border); margin-top: 1rem;
+  border-top: 1px solid rgba(0,0,0,0.08); margin-top: 1rem;
+  background: rgba(255,255,255,0.6);
 }
+#app { display: none; }
+#app.visible { display: block; }
 @media (max-width: 700px) {
   .form-grid { grid-template-columns: 1fr; }
   .header-left h1 { font-size: 1.15rem; }
   .header-left img { height: 48px; }
-  .header-right .time { font-size: 1.4rem; }
-  .header-right .date { font-size: 0.95rem; }
+  .header-right .time { font-size: 1.6rem; }
+  .header-right .date { font-size: 1.05rem; }
+  .header-right .weekday { font-size: 0.9rem; }
 }
 </style>
 </head>
 <body>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-box">
+    <img src="/static/logo.png" alt="Ansett Aviation Training">
+    <h2>Ansett Leave Apply System</h2>
+    <p class="sub">Please sign in to continue</p>
+    <form id="loginForm">
+      <label>Username</label>
+      <input type="text" id="login_user" placeholder="Username (optional)" autocomplete="username">
+      <label>Password</label>
+      <input type="password" id="login_pass" placeholder="Password (optional)" autocomplete="current-password">
+      <button type="submit" class="btn btn-primary">Sign In</button>
+    </form>
+    <p class="hint">No credentials required. Leave blank and click Sign In to enter.</p>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app">
 <header>
   <div class="header-left">
     <img src="/static/logo.png" alt="Ansett Aviation Training">
@@ -285,6 +360,9 @@ footer {
   </div>
 </div>
 
+<footer>Ansett Leave Apply System - Intellectual Property Editor: own by Hugo Guo!</footer>
+</div><!-- end #app -->
+
 <!-- Edit Employee Modal -->
 <div class="modal-bg" id="editModal">
   <div class="modal">
@@ -311,9 +389,23 @@ footer {
   </div>
 </div>
 
-<footer>Ansett Leave Apply System - Intellectual Property Editor: own by Hugo Guo!</footer>
-
 <script>
+// ===== Login (no strict validation – blank allowed) =====
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  // Accept any username/password including blank
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  // Optional: store a simple flag
+  sessionStorage.setItem('als_logged_in', '1');
+});
+
+// Auto-skip login if already signed in this session
+if (sessionStorage.getItem('als_logged_in') === '1') {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+}
+
 // ===== Live Clock (UTC+8) =====
 const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const weekdays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -338,7 +430,6 @@ function calcDuration() {
   const startVal = document.getElementById('start_datetime').value;
   const endVal = document.getElementById('end_datetime').value;
   if (!startVal || !endVal) return;
-
   const start = new Date(startVal);
   const end = new Date(endVal);
   if (end <= start) {
@@ -346,18 +437,12 @@ function calcDuration() {
     document.getElementById('total_days').value = 0;
     return;
   }
-
-  const diffMs = end - start;
-  const diffHours = diffMs / (1000 * 60 * 60);
-  // Round to nearest 0.5
+  const diffHours = (end - start) / (1000 * 60 * 60);
   const hours = Math.round(diffHours * 2) / 2;
-  // Days: assume 8 working hours = 1 day
   const days = Math.round((hours / 8) * 2) / 2;
-
   document.getElementById('total_hours').value = hours;
   document.getElementById('total_days').value = days;
 }
-
 document.getElementById('start_datetime').addEventListener('change', calcDuration);
 document.getElementById('end_datetime').addEventListener('change', calcDuration);
 
@@ -375,7 +460,6 @@ function statusText(s) {
 }
 
 let employeesCache = [];
-let leaveTypesCache = [];
 
 async function loadEmployees() {
   const res = await fetch('/api/employees');
@@ -456,8 +540,8 @@ async function deleteEmp(empId, name) {
 
 async function loadTypes() {
   const res = await fetch('/api/leave-types');
-  leaveTypesCache = await res.json();
-  document.getElementById('type_id').innerHTML = leaveTypesCache.map(t =>
+  const list = await res.json();
+  document.getElementById('type_id').innerHTML = list.map(t =>
     `<option value="${t.type_id}" data-unit="${t.unit}" data-code="${t.type_code}">${t.type_name} (${t.unit === 'hour' ? 'Hours' : 'Days'})</option>`
   ).join('');
   updateUnitHint();
